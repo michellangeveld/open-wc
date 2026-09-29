@@ -11,7 +11,7 @@ resources:
 
 variables:
   - name: isReleaseBranch
-    value: $[in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/prerelease')]
+    value: $[in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/develop', 'refs/heads/prerelease')]
   - name: azureFeed
     value: "P20594-outgoing-release-public-to-all"
 
