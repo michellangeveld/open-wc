@@ -1,0 +1,14 @@
+## editors
+/.idea
+/.vscode
+*.iml
+
+## system files
+.DS_Store
+
+## dependencies
+/node_modules*
+/npm-debug.log
+
+# generic logs
+*.log

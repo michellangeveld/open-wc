@@ -1,0 +1,8 @@
+{
+  "name": "test-with-browserslist-extends",
+  "version": "1.0.0",
+  "browserslist": [
+    "extends browserslist-config-ing"
+  ]
+}
+

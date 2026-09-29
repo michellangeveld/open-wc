@@ -1,0 +1,98 @@
+trigger:
+  - master
+  - prerelease
+
+resources:
+  repositories:
+    - repository: global-templates
+      type: git
+      name: INGOne/P10883-web-global-templates
+      ref: refs/heads/main
+
+variables:
+  - name: isReleaseBranch
+    value: $[in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/prerelease')]
+  - name: azureFeed
+    value: "P20594-outgoing-release-public-to-all"
+
+stages:
+  # Install NPM dependencies and upload to build artifact
+  - template: web/resolve-dependencies-npm/stages/default.yml@global-templates
+
+  # Run build stage on Azure Agent
+  - stage: Build
+    dependsOn: ResolveDependenciesNPM
+    pool:
+      vmImage: "ubuntu-24.04"
+    jobs:
+      - job: Validation
+        steps:
+          # Download NPM production dependencies from build artifact
+          - template: web/install-dependencies-npm/steps/default.yml@global-templates
+
+          # Run Check Vulnerabilities
+          - template: web/check-vulnerabilities/steps/default.yml@global-templates
+
+          # Run tests
+          - script: npm test
+            displayName: "Run tests"
+
+          # Publish fl_pipeline_artifacts as build artifact
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish fl_pipeline_artifacts"
+            condition: and(succeeded(), eq(variables.isReleaseBranch, true))
+            inputs:
+              PathtoPublish: "$(Build.SourcesDirectory)/fl_pipeline_artifacts"
+              ArtifactName: "fl_pipeline_artifacts"
+              publishLocation: "Container"
+
+  # Publish to Azure Feed
+  - template: web/publish-npm-azure/stages/default.yml@global-templates
+    parameters:
+      dependsOn: Build
+      condition: and(succeeded(), eq(variables.isReleaseBranch, true))
+      template: global-templates
+      feed: ${{ variables.azureFeed }}
+
+  # Tagging
+  - stage: Tagging
+    dependsOn: PublishToAzure
+    condition: and(succeeded(), eq(variables.isReleaseBranch, true))
+    pool:
+      vmImage: "ubuntu-24.04"
+    jobs:
+      - job: Tagging
+        steps:
+          - task: LoadJsonVariables@1
+            inputs:
+              JsonSource: "package.json"
+              VariablePrefix: "npm"
+              MarkAsSecret: false
+
+          - task: git-tag-on-release-task@9
+            displayName: Tagging version
+            inputs:
+              staticTagName: "$(NPM_VERSION)"
+
+  # Notify marketplace
+  - template: web/report-pipeline/stages/default.yml@global-templates
+    parameters:
+      dependsOn: PublishToAzure
+      condition: and(succeeded(), eq(variables.isReleaseBranch, true))
+      feMarketplaceYmlPath: "./oxlint-config-ing.yaml"
+      events:
+        - eventResultPath: fl_pipeline_artifacts/npmInstall.report.json
+          eventTaskName: npmInstall
+          eventType: build
+        - eventResultPath: fl_pipeline_artifacts/publishNpm.report.json
+          eventTaskName: publishNPM
+          eventType: build
+        - eventResultPath: fl_pipeline_artifacts/npmAudit.report.json
+          eventTaskName: npmAudit
+          eventType: build
+        - eventResultPath: README.md
+          eventTaskName: file
+          eventType: build
+        - eventResultPath: CHANGELOG.md
+          eventTaskName: file
+          eventType: build

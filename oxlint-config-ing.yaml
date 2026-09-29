@@ -1,0 +1,16 @@
+apiVersion: touchpoint/v1
+kind: FrontendWebComponent
+metadata:
+  name: 'oxlint-config-ing'
+  itProduct: P20594
+spec:
+  technology: ing-web 2
+  description: Oxlint config for ING frontend projects
+  deprecated: false
+  keywords:
+    - config
+    - oxlint
+    - lint
+  contactDetails:
+    - type: email
+      value: ml-webfoundation@ing.com

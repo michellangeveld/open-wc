@@ -1,0 +1,58 @@
+{
+  "name": "oxlint-config-ing",
+  "version": "0.0.1",
+  "description": "Oxlint config for ING frontend projects",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./oxlint.config.js"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/**/*.js\"",
+    "format": "npx prettier \"**/*.{md,js}\" --write"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://dev.azure.com/IngEurCDaaS01/IngOne/_git/P20594-oxlint-config-ing"
+  },
+  "author": "Web Foundation <ml-webfoundation@ing.com>",
+  "license": "ISC",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "index.js",
+    "oxlint.config.js",
+    "src/*.js",
+    "browserslist-resolver.js",
+    "README.md"
+  ],
+  "dependencies": {
+    "@eslint/compat": "^2.1.0",
+    "@open-wc/eslint-config": "^13.1.0",
+    "browserslist-config-ing": "^1.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-chai-friendly": "^1.2.1",
+    "eslint-plugin-compat": "^7.0.2",
+    "eslint-plugin-escompat": "^3.11.4",
+    "eslint-plugin-ing-security": "^2.0.3",
+    "eslint-plugin-ow": "^4.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.7.0",
+    "lit": "^3.3.3",
+    "oxlint": "^1.76.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0 || ^10.0.0",
+    "oxlint": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "oxlint": {
+      "optional": true
+    }
+  }
+}
