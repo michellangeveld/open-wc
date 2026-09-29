@@ -9,5 +9,5 @@ stages:
         steps:
           - task: touchpoint-automation-extension@0
             inputs:
-              argv: 'apply -f $(System.DefaultWorkingDirectory)/eslint-config-ow.yaml'
+              argv: 'apply -f $(System.DefaultWorkingDirectory)/oxlint-config-ing.yaml'
               pipelineIdentity: 'P20594-pipelineidentity-touchpoint-svc'
