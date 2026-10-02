@@ -1,5 +1,6 @@
 import eslintPluginImportX from 'eslint-plugin-import-x';
 import eslintConfigOpenWc from '@open-wc/eslint-config';
+import { fileURLToPath } from 'node:url';
 import eslintConfig from './index.js';
 
 // Oxlint reserves "import-x" for its native plugin, so JS plugin rules must use an alias.
@@ -28,9 +29,8 @@ const extractOverrides = (configs, count) =>
     .filter((cfg) => cfg.files && cfg.rules)
     .map((cfg) => ({ files: cfg.files, rules: cfg.rules }));
 
-// Plugin blacklist: plugins incompatible with oxlint
-// Needed because these plugins require ESLint-specific features, language parsers,
-// or runtime services that oxlint doesn't support
+// These plugins are incompatible with oxlint because these require ESLint-specific features,
+// language parsers, or runtime services that oxlint doesn't support
 const rulePluginBlacklist = new Set([
   'html',
   'wc-export',
@@ -124,13 +124,34 @@ const strictRules = enforceErrorByPluginPrefix(
   strictPluginPrefixes,
 );
 
+const resolvePackageFileSpecifier = (relativePath) =>
+  fileURLToPath(new URL(relativePath, import.meta.url));
+
+/**
+ * These plugins did not work directly in oxlint but can be made working by the use of a wrapper function
+ */
 const wrappedJsPlugins = [
-  { name: 'lit', specifier: './src/oxlint-plugin-lit-wrapper.js' },
-  { name: 'ing-security', specifier: './src/oxlint-plugin-ing-security-wrapper.js' },
-  { name: 'lit-a11y', specifier: './src/oxlint-plugin-lit-a11y-wrapper.js' },
-  { name: 'import-x-js', specifier: './src/oxlint-plugin-import-x-js-wrapper.js' },
+  {
+    name: 'lit',
+    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-lit-wrapper.js'),
+  },
+  {
+    name: 'ing-security',
+    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-ing-security-wrapper.js'),
+  },
+  {
+    name: 'lit-a11y',
+    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-lit-a11y-wrapper.js'),
+  },
+  {
+    name: 'import-x-js',
+    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-import-x-js-wrapper.js'),
+  },
 ];
 
+/**
+ * This plugins work in oxlint without any change
+ */
 const directJsPlugins = [
   'eslint-plugin-chai-friendly',
   'eslint-plugin-compat',
