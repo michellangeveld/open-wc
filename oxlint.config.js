@@ -128,9 +128,7 @@ const wrappedJsPlugins = [
   { name: 'lit', specifier: './src/oxlint-plugin-lit-wrapper.js' },
   { name: 'ing-security', specifier: './src/oxlint-plugin-ing-security-wrapper.js' },
   { name: 'lit-a11y', specifier: './src/oxlint-plugin-lit-a11y-wrapper.js' },
-  // Keep import-x-js on a dedicated wrapper that injects a live node resolver;
-  // resolver objects cannot be passed through serialized settings.
-  { name: 'import-x-js', specifier: './oxlint-plugin-import-x-js.js' },
+  { name: 'import-x-js', specifier: './src/oxlint-plugin-import-x-js-wrapper.js' },
 ];
 
 const directJsPlugins = [

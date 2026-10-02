@@ -31,24 +31,69 @@ const ensureParserServicesContext = (context) => {
   return Object.create(context, descriptor);
 };
 
-const wrapRuleForOxlint = (rule) => {
+const patchContextForOxlint = (context, options = {}) => {
+  const {
+    transformContext,
+    normalizeEcmaVersionToLatest = false,
+    settingsPatch,
+  } = options;
+  const { settings, languageOptions } = context ?? {};
+  const descriptor = {};
+
+  if (settingsPatch?.set || settingsPatch?.unset?.length) {
+    const patchedSettings = {
+      ...settings,
+      ...(settingsPatch?.set ?? {}),
+    };
+    for (const key of settingsPatch?.unset ?? []) {
+      delete patchedSettings[key];
+    }
+    descriptor.settings = { enumerable: true, value: patchedSettings };
+  }
+
+  if (normalizeEcmaVersionToLatest && languageOptions !== undefined) {
+    descriptor.languageOptions = {
+      enumerable: true,
+      value: {
+        ...languageOptions,
+        ecmaVersion: 'latest',
+        parserOptions: {
+          ...languageOptions.parserOptions,
+          ecmaVersion: 'latest',
+        },
+      },
+    };
+  }
+
+  const patchedContext =
+    Object.keys(descriptor).length > 0 ? Object.create(context, descriptor) : context;
+
+  return transformContext ? transformContext(patchedContext) : patchedContext;
+};
+
+const wrapRuleForOxlint = (rule, options) => {
   if (!rule || typeof rule.create !== 'function') return rule;
 
   return {
     ...rule,
     create(context) {
-      return rule.create(ensureParserServicesContext(context));
+      const parserReadyContext = ensureParserServicesContext(context);
+      const pluginReadyContext = patchContextForOxlint(parserReadyContext, options);
+      return rule.create(pluginReadyContext);
     },
   };
 };
 
-export const wrapPluginForOxlint = (plugin) => {
+export const wrapPluginForOxlint = (plugin, options = {}) => {
   if (!plugin?.rules) return plugin;
 
   return {
     ...plugin,
     rules: Object.fromEntries(
-      Object.entries(plugin.rules).map(([ruleId, rule]) => [ruleId, wrapRuleForOxlint(rule)]),
+      Object.entries(plugin.rules).map(([ruleId, rule]) => [
+        ruleId,
+        wrapRuleForOxlint(rule, options),
+      ]),
     ),
   };
 };

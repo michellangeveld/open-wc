@@ -26,7 +26,6 @@
     "CHANGELOG.md",
     "index.js",
     "oxlint.config.js",
-    "oxlint-plugin-import-x-js.js",
     "src/*.js",
     "browserslist-resolver.js",
     "README.md"
@@ -39,6 +38,7 @@
     "eslint-plugin-chai-friendly": "^1.2.1",
     "eslint-plugin-compat": "^7.0.2",
     "eslint-plugin-escompat": "^3.11.4",
+    "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-ing-security": "^2.0.3",
     "eslint-plugin-ow": "^4.3.1"
   },
