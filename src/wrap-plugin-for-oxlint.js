@@ -32,11 +32,7 @@ const ensureParserServicesContext = (context) => {
 };
 
 const patchContextForOxlint = (context, options = {}) => {
-  const {
-    transformContext,
-    normalizeEcmaVersionToLatest = false,
-    settingsPatch,
-  } = options;
+  const { transformContext, normalizeEcmaVersionToLatest = false, settingsPatch } = options;
   const { settings, languageOptions } = context ?? {};
   const descriptor = {};
 
