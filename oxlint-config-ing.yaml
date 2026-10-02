@@ -4,7 +4,7 @@ metadata:
   name: 'oxlint-config-ing'
   itProduct: P20594
 spec:
-  technology: ing-web 2
+  technology: ing-web 5
   description: Oxlint config for ING frontend projects
   deprecated: false
   keywords:
