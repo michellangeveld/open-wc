@@ -1,6 +1,6 @@
 {
   "name": "oxlint-config-ing",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Oxlint config for ING frontend projects",
   "main": "index.js",
   "exports": {
@@ -40,7 +40,8 @@
     "eslint-plugin-escompat": "^3.11.4",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-ing-security": "^2.0.3",
-    "eslint-plugin-ow": "^4.3.1"
+    "eslint-plugin-ow": "^4.3.1",
+    "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
     "eslint": "^10.7.0",
