@@ -26,6 +26,7 @@
     "CHANGELOG.md",
     "index.js",
     "oxlint.config.js",
+    "oxlint-plugin-import-x-js.js",
     "src/*.js",
     "browserslist-resolver.js",
     "README.md"
