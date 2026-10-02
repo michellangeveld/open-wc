@@ -2,9 +2,9 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 
-// Oxlint exposes `context.languageOptions.parser.parse`, but calling it throws
-// "not implemented yet". Rules such as import-x/namespace or import-x/default need
-// to parse *other* files, so we provide an espree-backed parser instead.
+// Oxlint exposes `context.languageOptions.parser.parse`, but currently throws
+// "not implemented yet". Some rules (for example import-x/namespace and
+// import-x/default) must parse additional files, so we provide an Espree fallback.
 let espree;
 try {
   espree = require('espree');
@@ -46,8 +46,8 @@ const espreeParser = espree && {
     try {
       return espree.parse(code, options);
     } catch (error) {
-      // Modern syntax espree cannot handle (e.g. decorators) should not fail the
-      // whole lint run; an empty program simply means "no exports detected".
+      // If Espree cannot parse newer syntax (for example decorators), do not fail
+      // the full lint run. For module parsing, an empty AST is enough to continue.
       if (options.sourceType === 'module') {
         return espree.parse('', options);
       }
@@ -57,8 +57,8 @@ const espreeParser = espree && {
 };
 
 /**
- * Returns a `languageOptions` object that always exposes a working parser,
- * falling back to oxlint's own parser when it is actually implemented.
+ * Ensure `languageOptions.parser` is callable.
+ * Use oxlint's parser when available; otherwise inject the Espree fallback.
  */
 export const ensureParserLanguageOptions = (languageOptions) => {
   if (!espreeParser) return languageOptions;

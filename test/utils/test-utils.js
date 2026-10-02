@@ -11,7 +11,7 @@ const oxlintConfigPath = join(projectRoot, 'oxlint.config.js');
 const linter = 'oxlint';
 
 /**
- * Extract JSON from text that may contain mixed output (stdout/stderr)
+ * Extract the first JSON payload from mixed command output (stdout/stderr).
  * @param {string} text - Text to parse
  * @returns {any|null}
  */
@@ -34,8 +34,8 @@ function _extractJsonFromText(text) {
 }
 
 /**
- * Extract and parse rule ID from oxlint code format
- * @param {string} code - Code string in format "plugin(rule)" or just "rule"
+ * Convert oxlint's diagnostic code into ESLint-style rule IDs.
+ * @param {string} code - Either "plugin(rule)" or plain "rule"
  * @returns {string|null}
  */
 function _parseRuleId(code) {
@@ -49,14 +49,14 @@ function _parseRuleId(code) {
   const rule = code.slice(start + 1, end);
   let ruleId = !plugin || !rule ? code : plugin === 'eslint' ? rule : `${plugin}/${rule}`;
 
-  // Normalize oxlint JS plugin aliases back to standard names for test matching
+  // Map oxlint alias back to the canonical plugin name used by tests.
   ruleId = ruleId.replace('import-x-js/', 'import-x/');
 
   return ruleId;
 }
 
 /**
- * Convert oxlint diagnostics to eslint-like format grouped by file
+ * Convert oxlint diagnostics into ESLint-like results grouped by file.
  * @param {any} parsed - Parsed oxlint output object
  * @returns {Array}
  */
@@ -102,7 +102,7 @@ async function createTempFile(filePath, code) {
 }
 
 /**
- * Lint code and return results
+ * Lint source code and return normalized diagnostics.
  * @param {string} code - Code to lint
  * @param {string} filePath - File path for context
  * @returns {Promise<Array>}
@@ -144,9 +144,9 @@ export async function lintCode(code, filePath) {
 }
 
 /**
- * Check if results contain a specific rule violation
- * @param {Array} results - linting results
- * @param {string} ruleId - Rule ID to check for (exact match, includes, or startsWith based on options)
+ * Check whether lint results contain a given rule ID.
+ * @param {Array} results - Linting results
+ * @param {string} ruleId - Rule ID to match (exact, includes, or startsWith)
  * @param {Object} options - Match options
  * @param {boolean} options.includes - Use includes matching
  * @param {boolean} options.startsWith - Use startsWith matching
@@ -169,7 +169,7 @@ export function hasRuleError(results, ruleId, options = {}) {
 }
 
 /**
- * Find a setting in the config
+ * Read a setting from the loaded oxlint config.
  * @param {string} key - Setting key
  * @returns {any|null}
  */

@@ -16,7 +16,8 @@ describe('eslint-plugin-compat', () => {
   });
 
   it('should flag Array.with compatibility issues (own browserslist)', async () => {
-    // compat/compat: Array.with() NOT supported in Safari 15.6, iOS Safari 15.6-15.8
+    // compat/compat should report this: Array.with() is unsupported in Safari 15.6
+    // and iOS Safari 15.6-15.8.
     const code = `
       const withReplaced = [1, 2, 3].with(1, 99);
     `;
@@ -29,7 +30,8 @@ describe('eslint-plugin-compat', () => {
   });
 
   it('should flag Array.with compatibility issues (default browsers)', async () => {
-    // compat/compat: Array.with() NOT supported in Safari 15.6, iOS Safari 15.6-15.8
+    // compat/compat should report this: Array.with() is unsupported in Safari 15.6
+    // and iOS Safari 15.6-15.8.
     const code = `
       const withReplaced = [1, 2, 3].with(1, 99);
     `;

@@ -38,7 +38,7 @@ describe('resolveBrowsersList', () => {
           'all entries should be strings',
         );
       } finally {
-        // Always restore original directory
+        // Restore the previous working directory after each fixture run.
         process.chdir(originalCwd);
       }
     });

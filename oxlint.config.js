@@ -11,7 +11,8 @@ import eslintPluginOw from 'eslint-plugin-ow';
 import { fileURLToPath } from 'node:url';
 import { resolveBrowsersList } from './browserslist-resolver.js';
 
-// Oxlint reserves "import-x" for its native plugin, so JS plugin rules must use an alias.
+// Oxlint reserves "import-x" for its native plugin.
+// Alias JS plugin rules to "import-x-js/*" to avoid name collisions.
 const IMPORT_X_RULE_PREFIX = 'import-x/';
 const IMPORT_X_JS_RULE_PREFIX = 'import-x-js/';
 
@@ -28,24 +29,21 @@ const aliasImportXRules = (rules) =>
 const extractAndMergeConfigObjects = (configs, pick) =>
   configs.reduce((result, cfg) => ({ ...result, ...(pick(cfg) ?? {}) }), {});
 
-// Extract file-specific overrides (last N configs from index.js)
-// Needed because oxlint must apply different rules to different file patterns
-// (e.g., test files or specific file types may have different rule severity)
+// Extract file-based overrides from the last N config entries.
+// Oxlint applies these rules only to matching file patterns (for example, tests).
 const extractOverrides = (configs, count) =>
   configs
     .slice(-count)
     .filter((cfg) => cfg.files && cfg.rules)
     .map((cfg) => ({ files: cfg.files, rules: cfg.rules }));
 
-// These plugins are incompatible with oxlint because these require ESLint-specific features,
-// language parsers, or runtime services that oxlint doesn't support
+// Plugins listed here are skipped because they rely on ESLint-only behavior that
+// oxlint cannot execute (custom parser hooks, runtime services, and similar APIs).
 const rulePluginBlacklist = new Set([]);
 
-// Rules intentionally excluded from ESLint->oxlint transfer.
-// These IDs can be present in upstream ESLint presets, but oxlint does not
-// register them under the "eslint" namespace; including them breaks
-// configuration parsing (`oxlint --print-config` fails with "Rule not found").
-// Verified against `oxlint --rules`.
+// Skip these core ESLint rules when generating oxlint rules.
+// They may exist in upstream presets, but oxlint does not expose them under
+// the "eslint/*" namespace. Keeping them causes "Rule not found" failures.
 const unsupportedRuleIds = new Set([
   'arrow-parens',
   'no-restricted-syntax',
@@ -113,12 +111,13 @@ const eslintConfig = [
     },
   },
   chaiFriendlyPlugin.configs['recommendedFlat'],
-  // Get `eslint-plugin-import to work`. See https://github.com/import-js/eslint-plugin-import/issues/2556#issuecomment-1419518561
+  // Make `eslint-plugin-import-x` work with flat config.
+  // See: https://github.com/import-js/eslint-plugin-import/issues/2556#issuecomment-1419518561
   {
     languageOptions: {
       parserOptions: {
-        // Eslint doesn't supply ecmaVersion in `parser.js` `context.parserOptions`
-        // This is required to avoid ecmaVersion < 2015 error or 'import' / 'export' error
+        // ESLint does not always pass ecmaVersion into parser context.
+        // Force modern module parsing to avoid false parse errors.
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
@@ -126,14 +125,14 @@ const eslintConfig = [
   },
   {
     rules: {
-      // List of rules sorted in alphabetical order.
-      // These rules are disabled by normally by ESLint 9, but we activated them to fill the gap
-      // for not using `eslint-config-airbnb` anymore due to lack of community support.
+      // Rules are kept alphabetically.
+      // ESLint 9 no longer enables these by default; we keep them enabled to
+      // preserve prior behavior after dropping eslint-config-airbnb.
       'class-methods-use-this': [
         'error',
         {
           exceptMethods: [
-            // web component life cycle
+            // Web Component lifecycle methods
             'connectedCallback',
             'disconnectedCallback',
 
@@ -159,7 +158,7 @@ const eslintConfig = [
       'no-undef': ['error'],
       'no-unused-vars': ['error'],
 
-      // allow console.error, but not console.log and console.warn
+      // Allow console.error only (block console.log/console.warn, etc.).
       'no-console': ['error', { allow: ['error'] }],
     },
 
@@ -170,21 +169,21 @@ const eslintConfig = [
     },
 
     settings: {
-      /** eslint-plugin-lit-a11y - This plugin needs to know where lit-html is imported from */
+      // eslint-plugin-lit-a11y: where lit-html imports come from
       litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
-      /** eslint-plugin-import - Allows eslint to lint for various import violations */
+      // eslint-plugin-import: enable import resolution checks
       'import/resolver': {
-        /** Adds support for node_modules imports */
+        // Resolve packages from node_modules.
         node: true,
       },
       /**
-       * eslint-plugin-escompat - Instruct `eslint-plugin-compat` to lint ES APIs.
+       * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
        * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
        */
       lintAllEsApis: true,
       /**
-       * eslint-plugin-compat - Resolve browserslist at runtime from the project's config.
-       * This reads from package.json browserslist, .browserslistrc, or inherited config.
+       * eslint-plugin-compat: use the project's runtime browserslist.
+       * Sources include package.json, .browserslistrc, and extended configs.
        */
       browsers: resolvedBrowsers,
     },
@@ -231,7 +230,7 @@ const resolvePackageFileSpecifier = (relativePath) =>
   fileURLToPath(new URL(relativePath, import.meta.url));
 
 /**
- * These plugins did not work directly in oxlint but can be made working by the use of a wrapper function
+ * These plugins do not run directly in oxlint, so we load them through wrappers.
  */
 const wrappedJsPlugins = [
   {
@@ -253,7 +252,7 @@ const wrappedJsPlugins = [
 ];
 
 /**
- * This plugins work in oxlint without any change
+ * These plugins work in oxlint without wrappers.
  */
 const directJsPlugins = [
   'eslint-plugin-chai-friendly',
