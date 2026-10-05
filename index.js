@@ -156,9 +156,6 @@ const eslintConfig = [
   compatPlugin.config['flat/recommended'],
   {
     ...escompatPlugin.configs['flat/recommended'],
-    languageOptions: {
-      ecmaVersion: 2024,
-    },
   },
   chaiFriendlyPlugin.configs['recommendedFlat'],
   {
