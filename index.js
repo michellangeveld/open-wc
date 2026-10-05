@@ -114,101 +114,6 @@ const enforceErrorByPluginPrefix = (rules, prefixes) => {
 const projectDir = process.cwd();
 const gitignorePath = path.join(projectDir, '.gitignore');
 const resolvedBrowsers = resolveBrowsersList(projectDir);
-// File-scoped rule relaxations owned by this config.
-// Oxlint applies these only to matching file patterns.
-const ingOverrides = [
-  {
-    files: ['**/*.test.js'],
-    rules: {
-      'ing-security/no-innerhtml': 'off',
-    },
-  },
-  {
-    files: ['**/*.test.js', '**/*.stories.js'],
-    rules: {
-      'ow/no-bare-ing-web-import': 'off',
-    },
-  },
-];
-
-const eslintConfig = [
-  includeIgnoreFile(gitignorePath),
-  ...eslintConfigOpenWc,
-  eslintConfigPrettier,
-  eslintPluginOw.configs.recommended,
-  ingSecurityConfig.configs.recommended,
-  compatPlugin.config['flat/recommended'],
-  escompatPlugin.configs['flat/recommended'],
-  chaiFriendlyPlugin.configs['recommendedFlat'],
-  {
-    rules: {
-      // Rules are kept alphabetically.
-      // ESLint 9 no longer enables these by default; we keep them enabled to
-      // preserve prior behavior after dropping eslint-config-airbnb.
-      'class-methods-use-this': [
-        'error',
-        {
-          exceptMethods: [
-            // Web Component lifecycle methods
-            'connectedCallback',
-            'disconnectedCallback',
-
-            // LitElement
-            'performUpdate',
-            'shouldUpdate',
-            'firstUpdated',
-            'update',
-            'updated',
-            'createRenderRoot',
-            'render',
-
-            'routerConfig',
-            '_mapStateToProps',
-          ],
-        },
-      ],
-
-      'no-await-in-loop': ['error'],
-      'no-continue': ['error'],
-      'no-param-reassign': ['error'],
-      'no-restricted-syntax': 'off',
-      'no-undef': ['error'],
-      'no-unused-vars': ['error'],
-
-      // Allow console.error only (block console.log/console.warn, etc.).
-      'no-console': ['error', { allow: ['error'] }],
-    },
-
-    languageOptions: {
-      globals: {
-        expect: false,
-      },
-    },
-
-    settings: {
-      // eslint-plugin-lit-a11y: where lit-html imports come from
-      litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
-      /**
-       * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
-       * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
-       */
-      lintAllEsApis: true,
-      /**
-       * eslint-plugin-compat: use the project's runtime browserslist.
-       * Sources include package.json, .browserslistrc, and extended configs.
-       */
-      browsers: resolvedBrowsers,
-    },
-  },
-  ...ingOverrides,
-];
-
-// Merge the `globals` of every @open-wc entry, and the `settings` of every entry.
-const globals = Object.assign(
-  {},
-  ...eslintConfigOpenWc.map((cfg) => cfg.languageOptions?.globals ?? {}),
-);
-const settings = Object.assign({}, ...eslintConfig.map((cfg) => cfg.settings ?? {}));
 
 const strictPluginPrefixes = [
   'chai-friendly',
@@ -221,13 +126,17 @@ const strictPluginPrefixes = [
   'ow',
 ];
 
-const strictRules = enforceErrorByPluginPrefix(
-  {
-    ...extractRules(eslintConfig),
-    ...extractRules([eslintPluginImportX.configs['flat/recommended']]),
-  },
-  strictPluginPrefixes,
-);
+// Turn an ESLint flat config array into the `settings`/`rules` pair oxlint expects.
+const toOxlintSettingsAndRules = (configs) => ({
+  settings: Object.assign({}, ...configs.map((cfg) => cfg.settings ?? {})),
+  rules: enforceErrorByPluginPrefix(
+    {
+      ...extractRules(configs),
+      ...extractRules([eslintPluginImportX.configs['flat/recommended']]),
+    },
+    strictPluginPrefixes,
+  ),
+});
 
 const resolvePackageFileSpecifier = (relativePath) =>
   fileURLToPath(new URL(relativePath, import.meta.url));
@@ -265,6 +174,12 @@ const directJsPlugins = [
   'eslint-plugin-ow',
 ];
 
+// Merge the `globals` of every @open-wc entry.
+const globals = Object.assign(
+  {},
+  ...eslintConfigOpenWc.map((cfg) => cfg.languageOptions?.globals ?? {}),
+);
+
 export default {
   // Setting `plugins` overwrites oxlint's base set, so the defaults
   // (eslint, unicorn, typescript, oxc) are repeated alongside `import`.
@@ -273,7 +188,91 @@ export default {
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },
   globals: { ...globals, expect: 'readonly' },
-  settings,
-  rules: strictRules,
-  overrides: ingOverrides,
+  ...toOxlintSettingsAndRules([
+    includeIgnoreFile(gitignorePath),
+    ...eslintConfigOpenWc,
+    eslintConfigPrettier,
+    eslintPluginOw.configs.recommended,
+    ingSecurityConfig.configs.recommended,
+    compatPlugin.config['flat/recommended'],
+    escompatPlugin.configs['flat/recommended'],
+    chaiFriendlyPlugin.configs['recommendedFlat'],
+    {
+      rules: {
+        // Rules are kept alphabetically.
+        // ESLint 9 no longer enables these by default; we keep them enabled to
+        // preserve prior behavior after dropping eslint-config-airbnb.
+        'class-methods-use-this': [
+          'error',
+          {
+            exceptMethods: [
+              // Web Component lifecycle methods
+              'connectedCallback',
+              'disconnectedCallback',
+
+              // LitElement
+              'performUpdate',
+              'shouldUpdate',
+              'firstUpdated',
+              'update',
+              'updated',
+              'createRenderRoot',
+              'render',
+
+              'routerConfig',
+              '_mapStateToProps',
+            ],
+          },
+        ],
+
+        'no-await-in-loop': ['error'],
+        'no-continue': ['error'],
+        'no-param-reassign': ['error'],
+        'no-restricted-syntax': 'off',
+        'no-undef': ['error'],
+        'no-unused-vars': ['error'],
+
+        // Allow console.error only (block console.log/console.warn, etc.).
+        'no-console': ['error', { allow: ['error'] }],
+      },
+
+      languageOptions: {
+        globals: {
+          expect: false,
+        },
+      },
+
+      settings: {
+        // eslint-plugin-lit-a11y: where lit-html imports come from
+        litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
+        /**
+         * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
+         * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
+         */
+        lintAllEsApis: true,
+        /**
+         * eslint-plugin-compat: use the project's runtime browserslist.
+         * Sources include package.json, .browserslistrc, and extended configs.
+         */
+        browsers: resolvedBrowsers,
+      },
+    },
+  ]),
+
+  // File-scoped rule relaxations owned by this config.
+  // Oxlint applies these only to matching file patterns.
+  overrides: [
+    {
+      files: ['**/*.test.js'],
+      rules: {
+        'ing-security/no-innerhtml': 'off',
+      },
+    },
+    {
+      files: ['**/*.test.js', '**/*.stories.js'],
+      rules: {
+        'ow/no-bare-ing-web-import': 'off',
+      },
+    },
+  ],
 };
