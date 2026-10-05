@@ -1,6 +1,7 @@
 trigger:
   - master
   - prerelease
+  - develop
 
 resources:
   repositories:
