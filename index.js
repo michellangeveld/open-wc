@@ -72,49 +72,7 @@ const unsupportedRuleIds = new Set([
   'no-unused-expressions',
 ]);
 
-// Collect the unscoped rules of every config entry into a single oxlint-ready map.
-// File-scoped entries are skipped here; they become `overrides` instead.
-const extractRules = (configs) => {
-  const rules = {};
-
-  for (const cfg of configs) {
-    if (cfg.files || !cfg.rules || cfg.name === 'config-prettier') continue;
-
-    for (const [ruleId, ruleConfig] of Object.entries(cfg.rules)) {
-      if (unsupportedRuleIds.has(ruleId)) continue;
-      rules[normalizeImportRuleId(ruleId)] = ruleConfig;
-    }
-  }
-
-  return rules;
-};
-
-const toErrorSeverity = (ruleConfig) => {
-  if (Array.isArray(ruleConfig)) {
-    return ['error', ...ruleConfig.slice(1)];
-  }
-  if (ruleConfig === 0 || ruleConfig === 'off') {
-    return 'off';
-  }
-  return 'error';
-};
-
-const enforceErrorByPluginPrefix = (rules, prefixes) => {
-  const result = { ...rules };
-
-  for (const [ruleId, ruleConfig] of Object.entries(result)) {
-    if (prefixes.some((prefix) => ruleId.startsWith(`${prefix}/`))) {
-      result[ruleId] = toErrorSeverity(ruleConfig);
-    }
-  }
-
-  return result;
-};
-
-const projectDir = process.cwd();
-const gitignorePath = path.join(projectDir, '.gitignore');
-const resolvedBrowsers = resolveBrowsersList(projectDir);
-
+// Plugins whose rules must always report as errors, never as warnings.
 const strictPluginPrefixes = [
   'chai-friendly',
   'compat',
@@ -126,17 +84,45 @@ const strictPluginPrefixes = [
   'ow',
 ];
 
-// Turn an ESLint flat config array into the `settings`/`rules` pair oxlint expects.
-const toOxlintSettingsAndRules = (configs) => ({
-  settings: Object.assign({}, ...configs.map((cfg) => cfg.settings ?? {})),
-  rules: enforceErrorByPluginPrefix(
-    {
-      ...extractRules(configs),
-      ...extractRules([eslintPluginImportX.configs['flat/recommended']]),
-    },
-    strictPluginPrefixes,
-  ),
-});
+const isStrictPluginRule = (ruleId) =>
+  strictPluginPrefixes.some((prefix) => ruleId.startsWith(`${prefix}/`));
+
+const toErrorSeverity = (ruleConfig) => {
+  if (Array.isArray(ruleConfig)) {
+    return ['error', ...ruleConfig.slice(1)];
+  }
+  if (ruleConfig === 0 || ruleConfig === 'off') {
+    return 'off';
+  }
+  return 'error';
+};
+
+// Collect the unscoped rules of every config entry into a single oxlint-ready map.
+// File-scoped entries are skipped here; they become `overrides` instead.
+const extractRules = (configs) => {
+  const rules = {};
+
+  for (const cfg of configs) {
+    if (cfg.files || !cfg.rules || cfg.name === 'config-prettier') continue;
+
+    for (const [ruleId, ruleConfig] of Object.entries(cfg.rules)) {
+      if (unsupportedRuleIds.has(ruleId)) continue;
+
+      const oxlintRuleId = normalizeImportRuleId(ruleId);
+      rules[oxlintRuleId] = isStrictPluginRule(oxlintRuleId)
+        ? toErrorSeverity(ruleConfig)
+        : ruleConfig;
+    }
+  }
+
+  return rules;
+};
+
+const extractSettings = (configs) => Object.assign({}, ...configs.map((cfg) => cfg.settings ?? {}));
+
+const projectDir = process.cwd();
+const gitignorePath = path.join(projectDir, '.gitignore');
+const resolvedBrowsers = resolveBrowsersList(projectDir);
 
 const resolvePackageFileSpecifier = (relativePath) =>
   fileURLToPath(new URL(relativePath, import.meta.url));
@@ -180,6 +166,81 @@ const globals = Object.assign(
   ...eslintConfigOpenWc.map((cfg) => cfg.languageOptions?.globals ?? {}),
 );
 
+// ESLint flat configs this preset is built from. Later entries win on conflicts.
+const sourceConfigs = [
+  includeIgnoreFile(gitignorePath),
+  ...eslintConfigOpenWc,
+  eslintConfigPrettier,
+  eslintPluginOw.configs.recommended,
+  ingSecurityConfig.configs.recommended,
+  compatPlugin.config['flat/recommended'],
+  escompatPlugin.configs['flat/recommended'],
+  chaiFriendlyPlugin.configs['recommendedFlat'],
+  {
+    rules: {
+      // Rules are kept alphabetically.
+      // ESLint 9 no longer enables these by default; we keep them enabled to
+      // preserve prior behavior after dropping eslint-config-airbnb.
+      'class-methods-use-this': [
+        'error',
+        {
+          exceptMethods: [
+            // Web Component lifecycle methods
+            'connectedCallback',
+            'disconnectedCallback',
+
+            // LitElement
+            'performUpdate',
+            'shouldUpdate',
+            'firstUpdated',
+            'update',
+            'updated',
+            'createRenderRoot',
+            'render',
+
+            'routerConfig',
+            '_mapStateToProps',
+          ],
+        },
+      ],
+
+      'no-await-in-loop': ['error'],
+      'no-continue': ['error'],
+      'no-param-reassign': ['error'],
+      'no-restricted-syntax': 'off',
+      'no-undef': ['error'],
+      'no-unused-vars': ['error'],
+
+      // Allow console.error only (block console.log/console.warn, etc.).
+      'no-console': ['error', { allow: ['error'] }],
+    },
+
+    languageOptions: {
+      globals: {
+        expect: false,
+      },
+    },
+
+    settings: {
+      // eslint-plugin-lit-a11y: where lit-html imports come from
+      litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
+      /**
+       * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
+       * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
+       */
+      lintAllEsApis: true,
+      /**
+       * eslint-plugin-compat: use the project's runtime browserslist.
+       * Sources include package.json, .browserslistrc, and extended configs.
+       */
+      browsers: resolvedBrowsers,
+    },
+  },
+
+  // Last so its rules win over the presets above.
+  eslintPluginImportX.configs['flat/recommended'],
+];
+
 export default {
   // Setting `plugins` overwrites oxlint's base set, so the defaults
   // (eslint, unicorn, typescript, oxc) are repeated alongside `import`.
@@ -188,76 +249,8 @@ export default {
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },
   globals: { ...globals, expect: 'readonly' },
-  ...toOxlintSettingsAndRules([
-    includeIgnoreFile(gitignorePath),
-    ...eslintConfigOpenWc,
-    eslintConfigPrettier,
-    eslintPluginOw.configs.recommended,
-    ingSecurityConfig.configs.recommended,
-    compatPlugin.config['flat/recommended'],
-    escompatPlugin.configs['flat/recommended'],
-    chaiFriendlyPlugin.configs['recommendedFlat'],
-    {
-      rules: {
-        // Rules are kept alphabetically.
-        // ESLint 9 no longer enables these by default; we keep them enabled to
-        // preserve prior behavior after dropping eslint-config-airbnb.
-        'class-methods-use-this': [
-          'error',
-          {
-            exceptMethods: [
-              // Web Component lifecycle methods
-              'connectedCallback',
-              'disconnectedCallback',
-
-              // LitElement
-              'performUpdate',
-              'shouldUpdate',
-              'firstUpdated',
-              'update',
-              'updated',
-              'createRenderRoot',
-              'render',
-
-              'routerConfig',
-              '_mapStateToProps',
-            ],
-          },
-        ],
-
-        'no-await-in-loop': ['error'],
-        'no-continue': ['error'],
-        'no-param-reassign': ['error'],
-        'no-restricted-syntax': 'off',
-        'no-undef': ['error'],
-        'no-unused-vars': ['error'],
-
-        // Allow console.error only (block console.log/console.warn, etc.).
-        'no-console': ['error', { allow: ['error'] }],
-      },
-
-      languageOptions: {
-        globals: {
-          expect: false,
-        },
-      },
-
-      settings: {
-        // eslint-plugin-lit-a11y: where lit-html imports come from
-        litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
-        /**
-         * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
-         * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
-         */
-        lintAllEsApis: true,
-        /**
-         * eslint-plugin-compat: use the project's runtime browserslist.
-         * Sources include package.json, .browserslistrc, and extended configs.
-         */
-        browsers: resolvedBrowsers,
-      },
-    },
-  ]),
+  settings: extractSettings(sourceConfigs),
+  rules: extractRules(sourceConfigs),
 
   // File-scoped rule relaxations owned by this config.
   // Oxlint applies these only to matching file patterns.
