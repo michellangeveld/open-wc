@@ -91,13 +91,23 @@ function _normalizeOxlintDiagnostics(parsed) {
   }));
 }
 
-async function createTempFile(filePath, code) {
+async function createTempFile(filePath, code, extraFiles = {}) {
   const id = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runDir = join(tmpdir(), `${linter}-${id}`);
   const tmpFilePath = join(runDir, filePath);
 
-  await mkdir(dirname(tmpFilePath), { recursive: true });
-  await writeFile(tmpFilePath, code, 'utf8');
+  const filesToWrite = [[tmpFilePath, code]];
+  for (const [relativePath, content] of Object.entries(extraFiles)) {
+    filesToWrite.push([join(runDir, relativePath), content]);
+  }
+
+  await Promise.all(
+    filesToWrite.map(async ([fullPath, content]) => {
+      await mkdir(dirname(fullPath), { recursive: true });
+      await writeFile(fullPath, content, 'utf8');
+    }),
+  );
+
   return { id, runDir, tmpFilePath };
 }
 
@@ -105,10 +115,11 @@ async function createTempFile(filePath, code) {
  * Lint source code and return normalized diagnostics.
  * @param {string} code - Code to lint
  * @param {string} filePath - File path for context
+ * @param {Object<string, string>} extraFiles - Additional files to create in the same temp workspace
  * @returns {Promise<Array>}
  */
-export async function lintCode(code, filePath) {
-  const { id, runDir, tmpFilePath } = await createTempFile(filePath, code);
+export async function lintCode(code, filePath, extraFiles = {}) {
+  const { id, runDir, tmpFilePath } = await createTempFile(filePath, code, extraFiles);
 
   let stdout = '';
   let stderr = '';
