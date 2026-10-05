@@ -1,84 +1,45 @@
+// Oxlint's rule context lacks `parserServices`, which many ESLint plugins expect.
+// These helpers layer the missing pieces on top of the original context object.
 const ensureParserServicesContext = (context) => {
   const parserServices = {
     ...(context?.sourceCode?.parserServices ?? context?.parserServices ?? {}),
   };
+  const asProperty = (value) => ({ enumerable: true, value });
 
   const descriptor = {
-    parserServices: {
-      enumerable: true,
-      value: parserServices,
-    },
-    languageOptions: {
-      enumerable: true,
-      value: context?.languageOptions,
-    },
+    parserServices: asProperty(parserServices),
+    languageOptions: asProperty(context?.languageOptions),
   };
 
   if (context?.sourceCode) {
-    descriptor.sourceCode = {
-      enumerable: true,
-      value: Object.create(context.sourceCode, {
-        parserServices: {
-          enumerable: true,
-          value: parserServices,
-        },
-      }),
-    };
+    descriptor.sourceCode = asProperty(
+      Object.create(context.sourceCode, { parserServices: asProperty(parserServices) }),
+    );
   }
 
   return Object.create(context, descriptor);
 };
 
-const patchContextForOxlint = (context, options = {}) => {
-  const { transformContext, normalizeEcmaVersionToLatest = false, settingsPatch } = options;
-  const { settings, languageOptions } = context ?? {};
-  const descriptor = {};
-
-  if (settingsPatch?.set || settingsPatch?.unset?.length) {
-    const patchedSettings = {
-      ...settings,
-      ...(settingsPatch?.set ?? {}),
-    };
-    for (const key of settingsPatch?.unset ?? []) {
-      delete patchedSettings[key];
-    }
-    descriptor.settings = { enumerable: true, value: patchedSettings };
-  }
-
-  if (normalizeEcmaVersionToLatest && languageOptions !== undefined) {
-    descriptor.languageOptions = {
-      enumerable: true,
-      value: {
-        ...languageOptions,
-        ecmaVersion: 'latest',
-        parserOptions: {
-          ...languageOptions.parserOptions,
-          ecmaVersion: 'latest',
-        },
-      },
-    };
-  }
-
-  const patchedContext =
-    Object.keys(descriptor).length > 0 ? Object.create(context, descriptor) : context;
-
-  return transformContext ? transformContext(patchedContext) : patchedContext;
-};
-
-const wrapRuleForOxlint = (rule, options) => {
-  if (!rule || typeof rule.create !== 'function') return rule;
+const wrapRuleForOxlint = (rule, transformContext) => {
+  if (typeof rule?.create !== 'function') return rule;
 
   return {
     ...rule,
     create(context) {
-      const parserReadyContext = ensureParserServicesContext(context);
-      const pluginReadyContext = patchContextForOxlint(parserReadyContext, options);
-      return rule.create(pluginReadyContext);
+      const patchedContext = ensureParserServicesContext(context);
+      return rule.create(transformContext ? transformContext(patchedContext) : patchedContext);
     },
   };
 };
 
-export const wrapPluginForOxlint = (plugin, options = {}) => {
+/**
+ * Adapt an ESLint plugin so its rules can run inside oxlint.
+ * @param {object} plugin - The ESLint plugin to wrap.
+ * @param {object} [options]
+ * @param {(context: object) => object} [options.transformContext] - Further tweak the rule context.
+ * @returns {object} The plugin with wrapped rules.
+ */
+export const wrapPluginForOxlint = (plugin, { transformContext } = {}) => {
   if (!plugin?.rules) return plugin;
 
   return {
@@ -86,7 +47,7 @@ export const wrapPluginForOxlint = (plugin, options = {}) => {
     rules: Object.fromEntries(
       Object.entries(plugin.rules).map(([ruleId, rule]) => [
         ruleId,
-        wrapRuleForOxlint(rule, options),
+        wrapRuleForOxlint(rule, transformContext),
       ]),
     ),
   };

@@ -118,39 +118,20 @@ const extractRules = (configs) => {
   return rules;
 };
 
-const extractSettings = (configs) => Object.assign({}, ...configs.map((cfg) => cfg.settings ?? {}));
-
-const extractGlobals = (configs) =>
-  Object.assign({}, ...configs.map((cfg) => cfg.languageOptions?.globals ?? {}));
+const mergeConfigValues = (configs, pick) =>
+  Object.assign({}, ...configs.map((cfg) => pick(cfg) ?? {}));
 
 const projectDir = process.cwd();
 const gitignorePath = path.join(projectDir, '.gitignore');
 const resolvedBrowsers = resolveBrowsersList(projectDir);
 
-const resolvePackageFileSpecifier = (relativePath) =>
-  fileURLToPath(new URL(relativePath, import.meta.url));
-
 /**
  * These plugins do not run directly in oxlint, so we load them through wrappers.
  */
-const wrappedJsPlugins = [
-  {
-    name: 'lit',
-    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-lit-wrapper.js'),
-  },
-  {
-    name: 'ing-security',
-    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-ing-security-wrapper.js'),
-  },
-  {
-    name: 'lit-a11y',
-    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-lit-a11y-wrapper.js'),
-  },
-  {
-    name: 'import-x-js',
-    specifier: resolvePackageFileSpecifier('./src/oxlint-plugin-import-x-js-wrapper.js'),
-  },
-];
+const wrappedJsPlugins = ['lit', 'ing-security', 'lit-a11y', 'import-x-js'].map((name) => ({
+  name,
+  specifier: fileURLToPath(new URL(`./src/oxlint-plugin-${name}-wrapper.js`, import.meta.url)),
+}));
 
 /**
  * These plugins work in oxlint without wrappers.
@@ -239,8 +220,11 @@ export default {
   jsPlugins: [...directJsPlugins, ...wrappedJsPlugins],
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },
-  globals: { ...extractGlobals(eslintConfigOpenWc), expect: 'readonly' },
-  settings: extractSettings(sourceConfigs),
+  globals: {
+    ...mergeConfigValues(eslintConfigOpenWc, (cfg) => cfg.languageOptions?.globals),
+    expect: 'readonly',
+  },
+  settings: mergeConfigValues(sourceConfigs, (cfg) => cfg.settings),
   rules: extractRules(sourceConfigs),
 
   // File-scoped rule relaxations owned by this config.

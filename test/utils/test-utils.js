@@ -17,17 +17,10 @@ const linter = 'oxlint';
  */
 function _extractJsonFromText(text) {
   if (!text) return null;
-  const arrayStart = text.indexOf('[');
-  const objectStart = text.indexOf('{');
-  const start =
-    arrayStart === -1
-      ? objectStart
-      : objectStart === -1
-        ? arrayStart
-        : Math.min(arrayStart, objectStart);
-  if (start === -1) return null;
+  const candidates = [text.indexOf('['), text.indexOf('{')].filter((index) => index !== -1);
+  if (candidates.length === 0) return null;
   try {
-    return JSON.parse(text.slice(start));
+    return JSON.parse(text.slice(Math.min(...candidates)));
   } catch {
     return null;
   }
@@ -42,12 +35,12 @@ function _parseRuleId(code) {
   if (typeof code !== 'string') return null;
   const start = code.indexOf('(');
   const end = code.lastIndexOf(')');
-  if (start === -1 || end === -1 || end <= start + 1) {
-    return code;
-  }
+  if (start === -1 || end <= start + 1) return code;
+
   const plugin = code.slice(0, start);
   const rule = code.slice(start + 1, end);
-  return !plugin || !rule ? code : plugin === 'eslint' ? rule : `${plugin}/${rule}`;
+  if (!plugin || !rule) return code;
+  return plugin === 'eslint' ? rule : `${plugin}/${rule}`;
 }
 
 /**
@@ -91,10 +84,13 @@ async function createTempFile(filePath, code, extraFiles = {}) {
   const runDir = join(tmpdir(), `${linter}-${id}`);
   const tmpFilePath = join(runDir, filePath);
 
-  const filesToWrite = [[tmpFilePath, code]];
-  for (const [relativePath, content] of Object.entries(extraFiles)) {
-    filesToWrite.push([join(runDir, relativePath), content]);
-  }
+  const filesToWrite = [
+    [tmpFilePath, code],
+    ...Object.entries(extraFiles).map(([relativePath, content]) => [
+      join(runDir, relativePath),
+      content,
+    ]),
+  ];
 
   await Promise.all(
     filesToWrite.map(async ([fullPath, content]) => {
@@ -103,7 +99,7 @@ async function createTempFile(filePath, code, extraFiles = {}) {
     }),
   );
 
-  return { id, runDir, tmpFilePath };
+  return { runDir, tmpFilePath };
 }
 
 /**
@@ -114,15 +110,12 @@ async function createTempFile(filePath, code, extraFiles = {}) {
  * @returns {Promise<Array>}
  */
 export async function lintCode(code, filePath, extraFiles = {}) {
-  const { id, runDir, tmpFilePath } = await createTempFile(filePath, code, extraFiles);
+  const { runDir, tmpFilePath } = await createTempFile(filePath, code, extraFiles);
 
   let stdout = '';
   let stderr = '';
-  let linkPath;
 
   try {
-    const lintTargetPath = tmpFilePath;
-
     const lintArgs = [
       '--yes',
       'oxlint',
@@ -130,7 +123,7 @@ export async function lintCode(code, filePath, extraFiles = {}) {
       oxlintConfigPath,
       '--format',
       'json',
-      lintTargetPath,
+      tmpFilePath,
     ];
 
     ({ stdout, stderr } = await execFileAsync('npx', lintArgs, { cwd: projectRoot }));
@@ -138,11 +131,7 @@ export async function lintCode(code, filePath, extraFiles = {}) {
     stdout = error.stdout ?? '';
     stderr = error.stderr ?? '';
   } finally {
-    const cleanup = [rm(runDir, { force: true, recursive: true })];
-    if (linkPath) {
-      cleanup.push(rm(linkPath, { force: true }));
-    }
-    await Promise.all(cleanup);
+    await rm(runDir, { force: true, recursive: true });
   }
 
   const parsed = _extractJsonFromText(stdout) ?? _extractJsonFromText(stderr) ?? [];
@@ -160,18 +149,13 @@ export async function lintCode(code, filePath, extraFiles = {}) {
  */
 export function hasRuleError(results, ruleId, options = {}) {
   const { includes = false, startsWith = false } = options;
+  const matches = (candidate) => {
+    if (includes) return Boolean(candidate?.includes(ruleId));
+    if (startsWith) return Boolean(candidate?.startsWith(ruleId));
+    return candidate === ruleId;
+  };
 
-  return results.some((result) =>
-    result.messages.some((msg) => {
-      if (includes) {
-        return msg.ruleId?.includes(ruleId);
-      }
-      if (startsWith) {
-        return msg.ruleId?.startsWith(ruleId);
-      }
-      return msg.ruleId === ruleId;
-    }),
-  );
+  return results.some((result) => result.messages.some((msg) => matches(msg.ruleId)));
 }
 
 /**
@@ -184,11 +168,9 @@ export function findSettings(key) {
 }
 
 export function hasPlugin(name) {
-  if ((oxlintConfig.plugins ?? []).includes(name)) {
-    return true;
-  }
-  if ((oxlintConfig.jsPlugins ?? []).includes(`eslint-plugin-${name}`)) {
-    return true;
-  }
-  return Object.keys(oxlintConfig.rules ?? {}).some((ruleId) => ruleId.startsWith(`${name}/`));
+  return (
+    (oxlintConfig.plugins ?? []).includes(name) ||
+    (oxlintConfig.jsPlugins ?? []).includes(`eslint-plugin-${name}`) ||
+    Object.keys(oxlintConfig.rules ?? {}).some((ruleId) => ruleId.startsWith(`${name}/`))
+  );
 }
