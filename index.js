@@ -120,6 +120,9 @@ const extractRules = (configs) => {
 
 const extractSettings = (configs) => Object.assign({}, ...configs.map((cfg) => cfg.settings ?? {}));
 
+const extractGlobals = (configs) =>
+  Object.assign({}, ...configs.map((cfg) => cfg.languageOptions?.globals ?? {}));
+
 const projectDir = process.cwd();
 const gitignorePath = path.join(projectDir, '.gitignore');
 const resolvedBrowsers = resolveBrowsersList(projectDir);
@@ -159,12 +162,6 @@ const directJsPlugins = [
   'eslint-plugin-no-only-tests',
   'eslint-plugin-ow',
 ];
-
-// Merge the `globals` of every @open-wc entry.
-const globals = Object.assign(
-  {},
-  ...eslintConfigOpenWc.map((cfg) => cfg.languageOptions?.globals ?? {}),
-);
 
 // ESLint flat configs this preset is built from. Later entries win on conflicts.
 const sourceConfigs = [
@@ -215,12 +212,6 @@ const sourceConfigs = [
       'no-console': ['error', { allow: ['error'] }],
     },
 
-    languageOptions: {
-      globals: {
-        expect: false,
-      },
-    },
-
     settings: {
       // eslint-plugin-lit-a11y: where lit-html imports come from
       litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
@@ -248,7 +239,7 @@ export default {
   jsPlugins: [...directJsPlugins, ...wrappedJsPlugins],
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },
-  globals: { ...globals, expect: 'readonly' },
+  globals: { ...extractGlobals(eslintConfigOpenWc), expect: 'readonly' },
   settings: extractSettings(sourceConfigs),
   rules: extractRules(sourceConfigs),
 
