@@ -1,6 +1,6 @@
 {
   "name": "oxlint-config-ing",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Oxlint config for ING frontend projects",
   "main": "index.js",
   "exports": {
