@@ -3,11 +3,11 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
-import oxlintConfig from '../../oxlint.config.js';
+import oxlintConfig from '../../index.js';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = new URL('../..', import.meta.url).pathname;
-const oxlintConfigPath = join(projectRoot, 'oxlint.config.js');
+const oxlintConfigPath = join(projectRoot, 'index.js');
 const linter = 'oxlint';
 
 /**

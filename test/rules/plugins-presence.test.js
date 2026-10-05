@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import oxlintConfig from '../../oxlint.config.js';
+import oxlintConfig from '../../index.js';
 
 const expectedOxlintPluginNamespaces = [
   '@typescript-eslint',
