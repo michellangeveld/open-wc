@@ -8,7 +8,7 @@ const ensureLitHtmlSources = (context) => {
   const currentSources = currentSettings.litHtmlSources;
   const mergedSources = Array.isArray(currentSources)
     ? [...new Set([...currentSources, ...defaultLitHtmlSources])]
-    : currentSources ?? defaultLitHtmlSources;
+    : (currentSources ?? defaultLitHtmlSources);
 
   return Object.create(context, {
     settings: {

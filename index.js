@@ -12,10 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { resolveBrowsersList } from './browserslist-resolver.js';
 
 // Oxlint reserves both "import" and "import-x" for its native Rust plugin, so the
-// JS fallback plugin must be registered under an alias.
-const IMPORT_X_RULE_PREFIX = 'import-x/';
-const NATIVE_IMPORT_RULE_PREFIX = 'import/';
-const IMPORT_X_JS_RULE_PREFIX = 'import-x-js/';
+// JS fallback plugin must be registered under an alias as the current 'namespace' is already taken.
+const IMPORT_RULE_ID = /^import(?:-x)?\/(.+)$/;
 
 // Rules that oxlint implements natively in its "import" plugin. Anything outside
 // this list (for example `no-unresolved`) only exists in eslint-plugin-import-x and
@@ -57,31 +55,12 @@ const nativeImportRules = new Set([
 ]);
 
 const normalizeImportRuleId = (ruleId) => {
-  const prefix = [IMPORT_X_RULE_PREFIX, NATIVE_IMPORT_RULE_PREFIX].find((candidate) =>
-    ruleId.startsWith(candidate),
-  );
-  if (!prefix) return ruleId;
+  const match = IMPORT_RULE_ID.exec(ruleId);
+  if (!match) return ruleId;
 
-  const ruleName = ruleId.slice(prefix.length);
-  return nativeImportRules.has(ruleName)
-    ? `${NATIVE_IMPORT_RULE_PREFIX}${ruleName}`
-    : `${IMPORT_X_JS_RULE_PREFIX}${ruleName}`;
+  const [, ruleName] = match;
+  return nativeImportRules.has(ruleName) ? `import/${ruleName}` : `import-x-js/${ruleName}`;
 };
-
-const extractAndMergeConfigObjects = (configs, pick) =>
-  configs.reduce((result, cfg) => ({ ...result, ...(pick(cfg) ?? {}) }), {});
-
-// Extract file-based overrides from the last N config entries.
-// Oxlint applies these rules only to matching file patterns (for example, tests).
-const extractOverrides = (configs, count) =>
-  configs
-    .slice(-count)
-    .filter((cfg) => cfg.files && cfg.rules)
-    .map((cfg) => ({ files: cfg.files, rules: cfg.rules }));
-
-// Plugins listed here are skipped because they rely on ESLint-only behavior that
-// oxlint cannot execute (custom parser hooks, runtime services, and similar APIs).
-const rulePluginBlacklist = new Set([]);
 
 // Skip these core ESLint rules when generating oxlint rules.
 // They may exist in upstream presets, but oxlint does not expose them under
@@ -93,6 +72,8 @@ const unsupportedRuleIds = new Set([
   'no-unused-expressions',
 ]);
 
+// Collect the unscoped rules of every config entry into a single oxlint-ready map.
+// File-scoped entries are skipped here; they become `overrides` instead.
 const extractRules = (configs) => {
   const rules = {};
 
@@ -101,26 +82,12 @@ const extractRules = (configs) => {
 
     for (const [ruleId, ruleConfig] of Object.entries(cfg.rules)) {
       if (unsupportedRuleIds.has(ruleId)) continue;
-
-      if (ruleId.includes('/')) {
-        const [pluginName] = ruleId.split('/');
-        if (rulePluginBlacklist.has(pluginName)) continue;
-      }
-
-      rules[ruleId] = ruleConfig;
+      rules[normalizeImportRuleId(ruleId)] = ruleConfig;
     }
   }
 
   return rules;
 };
-
-const normalizeRuleIdsForOxlint = (rules) =>
-  Object.fromEntries(
-    Object.entries(rules).map(([ruleId, ruleConfig]) => [
-      normalizeImportRuleId(ruleId),
-      ruleConfig,
-    ]),
-  );
 
 const toErrorSeverity = (ruleConfig) => {
   if (Array.isArray(ruleConfig)) {
@@ -147,6 +114,23 @@ const enforceErrorByPluginPrefix = (rules, prefixes) => {
 const projectDir = process.cwd();
 const gitignorePath = path.join(projectDir, '.gitignore');
 const resolvedBrowsers = resolveBrowsersList(projectDir);
+// File-scoped rule relaxations owned by this config.
+// Oxlint applies these only to matching file patterns.
+const ingOverrides = [
+  {
+    files: ['**/*.test.js'],
+    rules: {
+      'ing-security/no-innerhtml': 'off',
+    },
+  },
+  {
+    files: ['**/*.test.js', '**/*.stories.js'],
+    rules: {
+      'ow/no-bare-ing-web-import': 'off',
+    },
+  },
+];
+
 const eslintConfig = [
   includeIgnoreFile(gitignorePath),
   ...eslintConfigOpenWc,
@@ -216,26 +200,16 @@ const eslintConfig = [
       browsers: resolvedBrowsers,
     },
   },
-  {
-    files: ['**/*.test.js'],
-    rules: {
-      'ing-security/no-innerhtml': 'off',
-    },
-  },
-  {
-    files: ['**/*.test.js', '**/*.stories.js'],
-    rules: {
-      'ow/no-bare-ing-web-import': 'off',
-    },
-  },
+  ...ingOverrides,
 ];
 
-const globals = extractAndMergeConfigObjects(
-  eslintConfigOpenWc,
-  (cfg) => cfg.languageOptions?.globals,
+// Merge the `globals` of every @open-wc entry, and the `settings` of every entry.
+const globals = Object.assign(
+  {},
+  ...eslintConfigOpenWc.map((cfg) => cfg.languageOptions?.globals ?? {}),
 );
-const settings = extractAndMergeConfigObjects(eslintConfig, (cfg) => cfg.settings);
-const overrides = extractOverrides(eslintConfig, 2);
+const settings = Object.assign({}, ...eslintConfig.map((cfg) => cfg.settings ?? {}));
+
 const strictPluginPrefixes = [
   'chai-friendly',
   'compat',
@@ -248,10 +222,10 @@ const strictPluginPrefixes = [
 ];
 
 const strictRules = enforceErrorByPluginPrefix(
-  normalizeRuleIdsForOxlint({
+  {
     ...extractRules(eslintConfig),
-    ...eslintPluginImportX.configs['flat/recommended'].rules,
-  }),
+    ...extractRules([eslintPluginImportX.configs['flat/recommended']]),
+  },
   strictPluginPrefixes,
 );
 
@@ -300,8 +274,6 @@ export default {
   env: { browser: true, es2024: true, node: true },
   globals: { ...globals, expect: 'readonly' },
   settings,
-  rules: {
-    ...strictRules,
-  },
-  overrides,
+  rules: strictRules,
+  overrides: ingOverrides,
 };

@@ -19,7 +19,8 @@ describe('resolveBrowsersList', () => {
         }),
     },
     'with-browserslistrc': {
-      expectedBrowsers: (fixtureDir) => browserslist(['last 1 chrome versions'], { path: fixtureDir }),
+      expectedBrowsers: (fixtureDir) =>
+        browserslist(['last 1 chrome versions'], { path: fixtureDir }),
     },
     'with-extends': { expectedBrowsers: () => defaultBrowsers },
     fallback: { expectedBrowsers: () => defaultBrowsers },
