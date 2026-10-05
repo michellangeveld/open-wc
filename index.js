@@ -154,9 +154,7 @@ const eslintConfig = [
   eslintPluginOw.configs.recommended,
   ingSecurityConfig.configs.recommended,
   compatPlugin.config['flat/recommended'],
-  {
-    ...escompatPlugin.configs['flat/recommended'],
-  },
+  escompatPlugin.configs['flat/recommended'],
   chaiFriendlyPlugin.configs['recommendedFlat'],
   {
     rules: {
