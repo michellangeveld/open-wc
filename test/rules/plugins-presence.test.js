@@ -7,6 +7,7 @@ const expectedOxlintPluginNamespaces = [
   'chai-friendly',
   'compat',
   'escompat',
+  'import',
   'import-x-js',
   'ing-security',
   'lit',

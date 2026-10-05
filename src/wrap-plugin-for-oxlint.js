@@ -1,5 +1,3 @@
-import { ensureParserLanguageOptions } from './oxlint-parser-shim.js';
-
 const ensureParserServicesContext = (context) => {
   const parserServices = {
     ...(context?.sourceCode?.parserServices ?? context?.parserServices ?? {}),
@@ -12,7 +10,7 @@ const ensureParserServicesContext = (context) => {
     },
     languageOptions: {
       enumerable: true,
-      value: ensureParserLanguageOptions(context?.languageOptions),
+      value: context?.languageOptions,
     },
   };
 

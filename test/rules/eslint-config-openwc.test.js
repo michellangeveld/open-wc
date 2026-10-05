@@ -29,7 +29,7 @@ describe('eslint-config-openwc', () => {
 
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(hasRuleError(results, 'import-x/no-unresolved'), 'should flag unresolved imports');
+    assert.ok(hasRuleError(results, 'import-x-js/no-unresolved'), 'should flag unresolved imports');
   });
 
   it('should flag imports missing file extension', async () => {
@@ -40,7 +40,7 @@ describe('eslint-config-openwc', () => {
     const results = await lintCode(code, 'src/app.js');
 
     assert.ok(
-      hasRuleError(results, 'import-x/extensions'),
+      hasRuleError(results, 'import/extensions'),
       'should flag imports missing file extension',
     );
   });
@@ -52,7 +52,6 @@ describe('eslint-config-openwc', () => {
       });
     `;
     const results = await lintCode(code, 'test/app.test.js');
-    console.log('results', JSON.stringify(results));
 
     assert.ok(
       hasRuleError(results, 'no-only-tests/no-only-tests'),

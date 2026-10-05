@@ -11,20 +11,62 @@ import eslintPluginOw from 'eslint-plugin-ow';
 import { fileURLToPath } from 'node:url';
 import { resolveBrowsersList } from './browserslist-resolver.js';
 
-// Oxlint reserves "import-x" for its native plugin.
-// Alias JS plugin rules to "import-x-js/*" to avoid name collisions.
+// Oxlint reserves both "import" and "import-x" for its native Rust plugin, so the
+// JS fallback plugin must be registered under an alias.
 const IMPORT_X_RULE_PREFIX = 'import-x/';
+const NATIVE_IMPORT_RULE_PREFIX = 'import/';
 const IMPORT_X_JS_RULE_PREFIX = 'import-x-js/';
 
-const aliasImportXRules = (rules) =>
-  Object.fromEntries(
-    Object.entries(rules).map(([id, cfg]) => [
-      id.startsWith(IMPORT_X_RULE_PREFIX)
-        ? id.replace(IMPORT_X_RULE_PREFIX, IMPORT_X_JS_RULE_PREFIX)
-        : id,
-      cfg,
-    ]),
+// Rules that oxlint implements natively in its "import" plugin. Anything outside
+// this list (for example `no-unresolved`) only exists in eslint-plugin-import-x and
+// must be routed to the wrapped JS plugin, otherwise oxlint fails to parse the config.
+const nativeImportRules = new Set([
+  'consistent-type-specifier-style',
+  'default',
+  'export',
+  'exports-last',
+  'extensions',
+  'first',
+  'group-exports',
+  'max-dependencies',
+  'named',
+  'namespace',
+  'newline-after-import',
+  'no-absolute-path',
+  'no-amd',
+  'no-anonymous-default-export',
+  'no-commonjs',
+  'no-cycle',
+  'no-default-export',
+  'no-duplicates',
+  'no-dynamic-require',
+  'no-empty-named-blocks',
+  'no-mutable-exports',
+  'no-named-as-default',
+  'no-named-as-default-member',
+  'no-named-default',
+  'no-named-export',
+  'no-namespace',
+  'no-nodejs-modules',
+  'no-relative-parent-imports',
+  'no-self-import',
+  'no-unassigned-import',
+  'no-webpack-loader-syntax',
+  'prefer-default-export',
+  'unambiguous',
+]);
+
+const normalizeImportRuleId = (ruleId) => {
+  const prefix = [IMPORT_X_RULE_PREFIX, NATIVE_IMPORT_RULE_PREFIX].find((candidate) =>
+    ruleId.startsWith(candidate),
   );
+  if (!prefix) return ruleId;
+
+  const ruleName = ruleId.slice(prefix.length);
+  return nativeImportRules.has(ruleName)
+    ? `${NATIVE_IMPORT_RULE_PREFIX}${ruleName}`
+    : `${IMPORT_X_JS_RULE_PREFIX}${ruleName}`;
+};
 
 const extractAndMergeConfigObjects = (configs, pick) =>
   configs.reduce((result, cfg) => ({ ...result, ...(pick(cfg) ?? {}) }), {});
@@ -72,6 +114,14 @@ const extractRules = (configs) => {
   return rules;
 };
 
+const normalizeRuleIdsForOxlint = (rules) =>
+  Object.fromEntries(
+    Object.entries(rules).map(([ruleId, ruleConfig]) => [
+      normalizeImportRuleId(ruleId),
+      ruleConfig,
+    ]),
+  );
+
 const toErrorSeverity = (ruleConfig) => {
   if (Array.isArray(ruleConfig)) {
     return ['error', ...ruleConfig.slice(1)];
@@ -111,18 +161,6 @@ const eslintConfig = [
     },
   },
   chaiFriendlyPlugin.configs['recommendedFlat'],
-  // Make `eslint-plugin-import-x` work with flat config.
-  // See: https://github.com/import-js/eslint-plugin-import/issues/2556#issuecomment-1419518561
-  {
-    languageOptions: {
-      parserOptions: {
-        // ESLint does not always pass ecmaVersion into parser context.
-        // Force modern module parsing to avoid false parse errors.
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
-    },
-  },
   {
     rules: {
       // Rules are kept alphabetically.
@@ -171,11 +209,6 @@ const eslintConfig = [
     settings: {
       // eslint-plugin-lit-a11y: where lit-html imports come from
       litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
-      // eslint-plugin-import: enable import resolution checks
-      'import/resolver': {
-        // Resolve packages from node_modules.
-        node: true,
-      },
       /**
        * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
        * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
@@ -212,14 +245,15 @@ const strictPluginPrefixes = [
   'chai-friendly',
   'compat',
   'escompat',
+  'import',
+  'import-x-js',
   'ing-security',
   'no-only-tests',
   'ow',
-  'import-x-js',
 ];
 
 const strictRules = enforceErrorByPluginPrefix(
-  aliasImportXRules({
+  normalizeRuleIdsForOxlint({
     ...extractRules(eslintConfig),
     ...eslintPluginImportX.configs['flat/recommended'].rules,
   }),
@@ -263,6 +297,9 @@ const directJsPlugins = [
 ];
 
 export default {
+  // Setting `plugins` overwrites oxlint's base set, so the defaults
+  // (eslint, unicorn, typescript, oxc) are repeated alongside `import`.
+  plugins: ['eslint', 'unicorn', 'typescript', 'oxc', 'import'],
   jsPlugins: [...directJsPlugins, ...wrappedJsPlugins],
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },

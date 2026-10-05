@@ -47,12 +47,7 @@ function _parseRuleId(code) {
   }
   const plugin = code.slice(0, start);
   const rule = code.slice(start + 1, end);
-  let ruleId = !plugin || !rule ? code : plugin === 'eslint' ? rule : `${plugin}/${rule}`;
-
-  // Map oxlint alias back to the canonical plugin name used by tests.
-  ruleId = ruleId.replace('import-x-js/', 'import-x/');
-
-  return ruleId;
+  return !plugin || !rule ? code : plugin === 'eslint' ? rule : `${plugin}/${rule}`;
 }
 
 /**

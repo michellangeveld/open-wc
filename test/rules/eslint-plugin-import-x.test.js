@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { lintCode, hasRuleError } from '../utils/test-utils.js';
 
-describe('eslint-plugin-import-x', () => {
+describe('eslint-plugin-import-x (alias import-x-js)', () => {
   it('should flag unresolved imports', async () => {
     const code = `
       import missingModule from 'definitely-missing-package-for-import-x-test';
@@ -12,7 +12,7 @@ describe('eslint-plugin-import-x', () => {
     const results = await lintCode(code, 'src/import-x-unresolved.js');
 
     assert.ok(
-      hasRuleError(results, 'import-x/no-unresolved'),
+      hasRuleError(results, 'import-x-js/no-unresolved'),
       'should flag imports that cannot be resolved',
     );
   });
@@ -26,7 +26,7 @@ describe('eslint-plugin-import-x', () => {
     const results = await lintCode(code, 'src/import-x-resolved.js');
 
     assert.ok(
-      !hasRuleError(results, 'import-x/no-unresolved'),
+      !hasRuleError(results, 'import-x-js/no-unresolved'),
       'should not flag imports that can be resolved',
     );
   });
@@ -58,7 +58,7 @@ describe('eslint-plugin-import-x', () => {
     );
 
     assert.ok(
-      !hasRuleError(exportedSubpathResults, 'import-x/no-unresolved'),
+      !hasRuleError(exportedSubpathResults, 'import-x-js/no-unresolved'),
       'should allow exported package subpaths',
     );
 
@@ -72,7 +72,7 @@ describe('eslint-plugin-import-x', () => {
     );
 
     assert.ok(
-      hasRuleError(nonExportedSubpathResults, 'import-x/no-unresolved'),
+      hasRuleError(nonExportedSubpathResults, 'import-x-js/no-unresolved'),
       'should flag package subpaths blocked by package exports',
     );
   });
