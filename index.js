@@ -110,37 +110,12 @@ const sourceConfigs = [
   chaiFriendlyPlugin.configs['recommendedFlat'],
   {
     rules: {
-      // Rules are kept alphabetically.
-      // ESLint 9 no longer enables these by default; we keep them enabled to
-      // preserve prior behavior after dropping eslint-config-airbnb.
-      'class-methods-use-this': [
-        'error',
-        {
-          exceptMethods: [
-            // Web Component lifecycle methods
-            'connectedCallback',
-            'disconnectedCallback',
-
-            // LitElement
-            'performUpdate',
-            'shouldUpdate',
-            'firstUpdated',
-            'update',
-            'updated',
-            'createRenderRoot',
-            'render',
-          ],
-        },
-      ],
-
       'no-await-in-loop': ['error'],
       'no-continue': ['error'],
       'no-param-reassign': ['error'],
-      'no-restricted-syntax': 'off',
       'no-undef': ['error'],
-      'no-unused-vars': ['error'],
 
-      // Allow console.error only (block console.log/console.warn, etc.).
+      // Allow console.error and block console.log, console.warn, etc.
       'no-console': ['error', { allow: ['error'] }],
     },
 
