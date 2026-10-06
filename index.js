@@ -93,21 +93,10 @@ const resolvedBrowsers = resolveBrowsersList(projectDir);
 /**
  * These plugins do not run directly in oxlint, so we load them through wrappers.
  */
-const wrappedJsPlugins = ['lit', 'ing-security', 'lit-a11y', 'import-x-js'].map((name) => ({
+const wrapJsPlugin = (name) => ({
   name,
   specifier: fileURLToPath(new URL(`./src/oxlint-plugin-${name}-wrapper.js`, import.meta.url)),
-}));
-
-/**
- * These plugins work in oxlint without wrappers.
- */
-const directJsPlugins = [
-  'eslint-plugin-chai-friendly',
-  'eslint-plugin-compat',
-  'eslint-plugin-escompat',
-  'eslint-plugin-no-only-tests',
-  'eslint-plugin-ow',
-];
+});
 
 // ESLint flat configs this preset is built from. Later entries win on conflicts.
 const sourceConfigs = [
@@ -179,7 +168,17 @@ export default {
   // Setting `plugins` overwrites oxlint's base set, so the defaults
   // (eslint, unicorn, typescript, oxc) are repeated alongside `import`.
   plugins: ['eslint', 'unicorn', 'typescript', 'oxc', 'import'],
-  jsPlugins: [...directJsPlugins, ...wrappedJsPlugins],
+  jsPlugins: [
+    'eslint-plugin-chai-friendly',
+    'eslint-plugin-compat',
+    'eslint-plugin-escompat',
+    'eslint-plugin-no-only-tests',
+    'eslint-plugin-ow',
+    wrapJsPlugin('lit'),
+    wrapJsPlugin('ing-security'),
+    wrapJsPlugin('lit-a11y'),
+    wrapJsPlugin('import-x-js'),
+  ],
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },
   globals: {
