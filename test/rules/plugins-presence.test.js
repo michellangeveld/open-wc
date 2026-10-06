@@ -42,11 +42,19 @@ describe('plugin presence', () => {
     assert.deepStrictEqual([...namespaces].sort(), [...expectedOxlintPluginNamespaces].sort());
   });
 
-  it('should map native import rules to the native import namespace', () => {
+  it('should route only selected import rules to import-x-js', () => {
     assert.ok(oxlintConfig.rules['import/extensions'], 'expected native import/extensions rule');
     assert.ok(
       !oxlintConfig.rules['import-x-js/extensions'],
       'native import rules should not be mapped to import-x-js',
+    );
+    assert.ok(
+      oxlintConfig.rules['import-x-js/no-unresolved'],
+      'expected import-x-js/no-unresolved to stay on import-x-js',
+    );
+    assert.ok(
+      Object.hasOwn(oxlintConfig.rules, 'import-x-js/no-extraneous-dependencies'),
+      'expected import-x-js/no-extraneous-dependencies to stay on import-x-js when configured',
     );
   });
 });

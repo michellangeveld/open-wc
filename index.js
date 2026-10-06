@@ -15,51 +15,16 @@ import { resolveBrowsersList } from './browserslist-resolver.js';
 // JS fallback plugin must be registered under an alias as the current 'namespace' is already taken.
 const IMPORT_RULE_ID = /^import(?:-x)?\/(.+)$/;
 
-// Rules that oxlint implements natively in its "import" plugin. Anything outside
-// this list (for example `no-unresolved`) only exists in eslint-plugin-import-x and
-// must be routed to the wrapped JS plugin, otherwise oxlint fails to parse the config.
-const nativeImportRules = new Set([
-  'consistent-type-specifier-style',
-  'default',
-  'export',
-  'exports-last',
-  'extensions',
-  'first',
-  'group-exports',
-  'max-dependencies',
-  'named',
-  'namespace',
-  'newline-after-import',
-  'no-absolute-path',
-  'no-amd',
-  'no-anonymous-default-export',
-  'no-commonjs',
-  'no-cycle',
-  'no-default-export',
-  'no-duplicates',
-  'no-dynamic-require',
-  'no-empty-named-blocks',
-  'no-mutable-exports',
-  'no-named-as-default',
-  'no-named-as-default-member',
-  'no-named-default',
-  'no-named-export',
-  'no-namespace',
-  'no-nodejs-modules',
-  'no-relative-parent-imports',
-  'no-self-import',
-  'no-unassigned-import',
-  'no-webpack-loader-syntax',
-  'prefer-default-export',
-  'unambiguous',
-]);
+// Use oxlint's native import plugin by default. Only route these rules to the
+// wrapped JS import-x plugin.
+const importXJsRules = new Set(['no-unresolved', 'no-extraneous-dependencies']);
 
 const normalizeImportRuleId = (ruleId) => {
   const match = IMPORT_RULE_ID.exec(ruleId);
   if (!match) return ruleId;
 
   const [, ruleName] = match;
-  return nativeImportRules.has(ruleName) ? `import/${ruleName}` : `import-x-js/${ruleName}`;
+  return importXJsRules.has(ruleName) ? `import-x-js/${ruleName}` : `import/${ruleName}`;
 };
 
 // Skip these core ESLint rules when generating oxlint rules.
