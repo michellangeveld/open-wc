@@ -175,9 +175,6 @@ const sourceConfigs = [
             'updated',
             'createRenderRoot',
             'render',
-
-            'routerConfig',
-            '_mapStateToProps',
           ],
         },
       ],
