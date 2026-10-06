@@ -1,5 +1,6 @@
-// Keep this wrapper until oxlint exposes ESLint-compatible parser services on both
-// `context.parserServices` and `context.sourceCode.parserServices`.
+// Keep this wrapper until oxlint is ESLint-compatible or all plugins are oxlint compatible.
+// The compatibility issues are not related to `context.parserServices` and `context.sourceCode.parserServices`.
+//
 // Wrapped plugins (lit, lit-a11y, ing-security, import-x-js) read those fields;
 // without this shim they either crash or skip intended diagnostics.
 const ensureParserServicesContext = (context) => {
@@ -10,7 +11,6 @@ const ensureParserServicesContext = (context) => {
 
   const descriptor = {
     parserServices: asProperty(parserServices),
-    languageOptions: asProperty(context?.languageOptions),
   };
 
   if (context?.sourceCode) {
