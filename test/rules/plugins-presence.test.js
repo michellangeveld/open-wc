@@ -41,4 +41,12 @@ describe('plugin presence', () => {
     const namespaces = getOxlintPluginNamespaces(oxlintConfig);
     assert.deepStrictEqual([...namespaces].sort(), [...expectedOxlintPluginNamespaces].sort());
   });
+
+  it('should map native import rules to the native import namespace', () => {
+    assert.ok(oxlintConfig.rules['import/extensions'], 'expected native import/extensions rule');
+    assert.ok(
+      !oxlintConfig.rules['import-x-js/extensions'],
+      'native import rules should not be mapped to import-x-js',
+    );
+  });
 });
