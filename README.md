@@ -34,3 +34,9 @@ export default {
 | --------------------- | -------------: | -------------: | -------------: | ---------------: |
 | ing-feat-example      |          1.812 |          1.420 |         21.63% |           27.61% |
 | ing-app-daily-banking |          6.360 |          2.840 |         55.35% |          123.94% |
+
+## Future steps
+
+1. Remove import-x plugin when oxlint native import plugin supports all rules.
+2. Remove this wrapper for plugins import-x, ing-security, lit-a11y and lit once oxlint exposes ESLint-compatible parser services in
+   both `context.parserServices` and `context.sourceCode.parserServices`.
