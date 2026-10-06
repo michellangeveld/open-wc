@@ -1,5 +1,7 @@
-// Oxlint's rule context lacks `parserServices`, which many ESLint plugins expect.
-// These helpers layer the missing pieces on top of the original context object.
+// Keep this wrapper until oxlint exposes ESLint-compatible parser services on both
+// `context.parserServices` and `context.sourceCode.parserServices`.
+// Wrapped plugins (lit, lit-a11y, ing-security, import-x-js) read those fields;
+// without this shim they either crash or skip intended diagnostics.
 const ensureParserServicesContext = (context) => {
   const parserServices = {
     ...(context?.sourceCode?.parserServices ?? context?.parserServices ?? {}),
