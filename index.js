@@ -8,14 +8,13 @@ import * as compatPlugin from 'eslint-plugin-compat';
 import escompatPlugin from 'eslint-plugin-escompat';
 import ingSecurityConfig from 'eslint-plugin-ing-security';
 import eslintPluginOw from 'eslint-plugin-ow';
-import { fileURLToPath } from 'node:url';
 import { resolveBrowsersList } from './browserslist-resolver.js';
 
 // Oxlint reserves both "import" and "import-x" for its native Rust plugin, so the
 // JS fallback plugin must be registered under an alias as the current 'namespace' is already taken.
 const IMPORT_RULE_ID = /^import(?:-x)?\/(.+)$/;
 
-// Use oxlint's native import plugin by default. Only route these rules to the
+// Use ox lint's native import plugin by default. Only route these rules to the
 // wrapped JS import-x plugin.
 const importXJsRules = new Set(['no-unresolved', 'no-extraneous-dependencies']);
 
@@ -90,14 +89,6 @@ const projectDir = process.cwd();
 const gitignorePath = path.join(projectDir, '.gitignore');
 const resolvedBrowsers = resolveBrowsersList(projectDir);
 
-/**
- * These plugins do not run directly in oxlint, so we load them through wrappers.
- */
-const wrapJsPlugin = (name) => ({
-  name,
-  specifier: fileURLToPath(new URL(`./src/oxlint-plugin-${name}-wrapper.js`, import.meta.url)),
-});
-
 // ESLint flat configs this preset is built from. Later entries win on conflicts.
 const sourceConfigs = [
   includeIgnoreFile(gitignorePath),
@@ -120,17 +111,13 @@ const sourceConfigs = [
     },
 
     settings: {
-      // eslint-plugin-lit-a11y: where lit-html imports come from
+      // where lit-html imports come from (used by security and a11y plugin)
       litHtmlSources: ['ing-web', 'ing-web/lit-2.js', 'ing-web/core.js'],
-      /**
-       * eslint-plugin-escompat: tell eslint-plugin-compat to lint ES APIs too.
-       * See https://github.com/amilajack/eslint-plugin-compat#linting-es-apis-experimental
-       */
+
+      // tell eslint-plugin-compat to lint ES APIs
       lintAllEsApis: true,
-      /**
-       * eslint-plugin-compat: use the project's runtime browserslist.
-       * Sources include package.json, .browserslistrc, and extended configs.
-       */
+
+      // use runtime browser list
       browsers: resolvedBrowsers,
     },
   },
@@ -152,7 +139,9 @@ export default {
     'eslint-plugin-ing-security',
     'eslint-plugin-lit-a11y',
     'eslint-plugin-lit',
-    wrapJsPlugin('import-x-js'),
+    // Oxlint reserves the `import`/`import-x` namespaces for its native plugin,
+    // so the JS plugin is registered under an alias.
+    { name: 'import-x-js', specifier: 'eslint-plugin-import-x' },
   ],
   categories: { style: 'allow' },
   env: { browser: true, es2024: true, node: true },
