@@ -38,5 +38,5 @@ export default {
 ## Future steps
 
 1. Remove import-x plugin when oxlint native import plugin supports all rules.
-2. Remove this wrapper for plugins import-x, ing-security, lit-a11y and lit once oxlint exposes ESLint-compatible parser services in
+2. Remove this wrapper for plugins import-x, ing-security and lit-a11y once oxlint exposes ESLint-compatible parser services in
    both `context.parserServices` and `context.sourceCode.parserServices`.

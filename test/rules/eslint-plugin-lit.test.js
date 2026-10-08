@@ -4,16 +4,10 @@ import oxlintConfig from '../../index.js';
 import { hasRuleError, lintCode } from '../utils/test-utils.js';
 
 describe('eslint-plugin-lit', () => {
-  it('should be registered through the lit wrapper', () => {
-    const wrappedLitPlugin = (oxlintConfig.jsPlugins ?? []).find(
-      (plugin) => typeof plugin === 'object' && plugin?.name === 'lit',
-    );
-
-    assert.ok(wrappedLitPlugin, 'expected lit wrapper plugin to be registered');
-    assert.match(
-      wrappedLitPlugin.specifier,
-      /src\/oxlint-plugin-lit-wrapper\.js$/,
-      'expected lit plugin to be loaded via src/oxlint-plugin-lit-wrapper.js',
+  it('should register eslint-plugin-lit directly', () => {
+    assert.ok(
+      (oxlintConfig.jsPlugins ?? []).includes('eslint-plugin-lit'),
+      'expected eslint-plugin-lit to be registered directly',
     );
   });
 

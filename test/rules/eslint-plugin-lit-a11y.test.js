@@ -51,4 +51,20 @@ describe('eslint-plugin-lit-a11y', () => {
       'should flag click events without corresponding key events',
     );
   });
+
+  it('should track litHtmlSources imports via parserServices-backed metadata', async () => {
+    const code = `
+      import { html } from 'ing-web/core.js';
+
+      const template = html\`
+        <div tabindex="2">Focusable div</div>
+      \`;
+    `;
+    const results = await lintCode(code, 'src/my-component.js');
+
+    assert.ok(
+      hasRuleError(results, 'lit-a11y/tabindex-no-positive'),
+      'should lint html templates from configured litHtmlSources imports',
+    );
+  });
 });

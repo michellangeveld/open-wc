@@ -98,7 +98,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(hasRuleError(results, 'class-methods-use-this'), 'should flag class methods that don\'t use this');
+    assert.ok(
+      hasRuleError(results, 'class-methods-use-this'),
+      "should flag class methods that don't use this",
+    );
   });
 
   it('should allow Web Component lifecycle methods without using this', async () => {
@@ -115,7 +118,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow Web Component lifecycle methods');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow Web Component lifecycle methods',
+    );
   });
 
   it('should allow LitElement lifecycle methods without using this', async () => {
@@ -152,7 +158,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow LitElement lifecycle methods');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow LitElement lifecycle methods',
+    );
   });
 
   it('should allow class methods that use this', async () => {
@@ -169,7 +178,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow methods that use this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow methods that use this',
+    );
   });
 
   it('should allow performUpdate exception method without using this', async () => {
@@ -182,7 +194,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow performUpdate without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow performUpdate without using this',
+    );
   });
 
   it('should allow shouldUpdate exception method without using this', async () => {
@@ -195,7 +210,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow shouldUpdate without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow shouldUpdate without using this',
+    );
   });
 
   it('should allow firstUpdated exception method without using this', async () => {
@@ -208,7 +226,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow firstUpdated without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow firstUpdated without using this',
+    );
   });
 
   it('should allow update exception method without using this', async () => {
@@ -221,7 +242,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow update without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow update without using this',
+    );
   });
 
   it('should allow updated exception method without using this', async () => {
@@ -234,7 +258,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow updated without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow updated without using this',
+    );
   });
 
   it('should allow createRenderRoot exception method without using this', async () => {
@@ -247,7 +274,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow createRenderRoot without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow createRenderRoot without using this',
+    );
   });
 
   it('should allow render exception method without using this', async () => {
@@ -260,7 +290,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow render without using this');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow render without using this',
+    );
   });
 
   it('should flag non-exception methods not using this', async () => {
@@ -277,7 +310,10 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(hasRuleError(results, 'class-methods-use-this'), 'should flag regular methods that don\'t use this');
+    assert.ok(
+      hasRuleError(results, 'class-methods-use-this'),
+      "should flag regular methods that don't use this",
+    );
   });
 
   it('should allow multiple exception methods in same class', async () => {
@@ -298,6 +334,9 @@ describe('basic linting rules are properly configured', () => {
     `;
     const results = await lintCode(code, 'src/app.js');
 
-    assert.ok(!hasRuleError(results, 'class-methods-use-this'), 'should allow multiple exception methods in same class');
+    assert.ok(
+      !hasRuleError(results, 'class-methods-use-this'),
+      'should allow multiple exception methods in same class',
+    );
   });
 });
